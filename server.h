@@ -9,37 +9,38 @@
 #define true 1
 #define BUF_SIZE 1024
 
-void init(unsigned int port);
-int communicate(int client_fd);
-int check_file(char *path);
-char *get_status(int code);
-char *get_mime(char *format);
-void print_help(char *path);
-int header_len(char *status, char *connection, char *mime);
-char *create_header(char *header, char *status, char *connection, char *mime);
+void init(unsigned int port);		// 이니셜라이징 함수
+int communicate(int client_fd);	// 클라이언트와 통신하는 함수
+int check_file(char *path);			// 파일의 존재 유무와 접근 권한을 확인하는 함수
+char *get_status(int code);			// check_file이 주는 아웃풋에 따른 헤더에 들어갈 스테이터스를 반환하는 함수
+char *get_mime(char *format);		// 보내는 파일의 확장자에 따른 mime을 리턴하는 함수
+void print_help(char *path);		// 도움말 페이지를 출력하는 함수
+int header_len(char *status, char *connection, char *mime);	// 헤더의 길이를 계산하는 함수
+char *create_header(char *header, char *status, char *connection, char *mime);	// 헤더를 완성하는 함수
 
-static char *DOCUMENT_ROOT = "/var/my_www";
-static char *header = "HTTP/1.1 %s\r\n"
-											"Connection: %s\r\n"
-											"Content-Type: %s\r\n"
-											"\r\n";
-static char *NOT_FOUND = 	"<!DOCTYPE HTML>"
-													"<html>"
-													"	<head></head>"
-													"	<body>"
-													"		<h1>Not Found</h1>"
-													"		<p>The requested URL %s was not found on this server.</p>"
-													"	</body>"
-													"</html>";
+static char *DOCUMENT_ROOT = "./www"; // 서버의 루트 디렉터리
+static char *header = "HTTP/1.1 %s\r\n"	// 헤더파일의 포맷
+"Connection: %s\r\n"
+"Content-Type: %s\r\n"
+"\r\n";
 
-static char *FORBIDDEN = 	"<!DOCTYPE HTML>"
-													"<html>"
-													"	<head></head>"
-													"	<body>"
-													"		<h1>Forbidden</h1>"
-													"		<p>You don't have permission to access %s on this server.</p>"
-													"	</body>"
-													"</html>";
+static char *NOT_FOUND = 	"<!DOCTYPE HTML>"	// 404에러시 보여줄 페이지
+"<html>"
+"	<head></head>"
+"	<body>"
+"		<h1>Not Found</h1>"
+"		<p>The requested URL %s was not found on this server.</p>"
+"	</body>"
+"</html>";
+
+static char *FORBIDDEN = 	"<!DOCTYPE HTML>"	// 403 에러시 보여줄 페이지
+"<html>"
+"	<head></head>"
+"	<body>"
+"		<h1>Forbidden</h1>"
+"		<p>You don't have permission to access %s on this server.</p>"
+"	</body>"
+"</html>";
 
 
 int count = 0;
@@ -103,72 +104,72 @@ int communicate(int client_fd) {
 	int c_header_len;
 	char *response;
 	printf("count: %d\n", count);
-	n = read(client_fd, buf, BUF_SIZE);
+	n = read(client_fd, buf, BUF_SIZE);	// 클라이언트로부터 리퀘스트를 읽음
 	printf("read: %d\n", n);
 	buf[n] = '\0';
 	printf("%s\n", buf);
-	sscanf(buf, "%s %s", op, file_name);
-	tmp = (char *)malloc(sizeof(char) * 20);
+	sscanf(buf, "%s %s", op, file_name);	// 받은 리퀘스트로부터 첫 두 단어를 분리함. 각 각 GET같은 요청과 파일 이름으로 분리
+	tmp = (char *)malloc(sizeof(char) * 20);	// 파일의 확장자를 구하기 위한 임시 변수 사용후 free
 	strcpy(tmp, file_name);
 
-	while(tmp[i] != '.') {
+	while(tmp[i] != '.') {	// i가 .의 위치를 가르킬때까지 i값을 증가
 		if (i == strlen(tmp)) {
 			break;
 		}
 		i++;
 	}
-	
-	if (i == strlen(tmp))
+
+	if (i == strlen(tmp))	// i가 tmp의 길이와 같은 경우는 확장자가 없다고 판단.
 		strcpy(file_format, "none");
-	else
+	else	// 아닐경우는 .의 뒷부분부터 확장자를 저장하는 변수에 저장
 		strcpy(file_format,tmp + i + 1);
 	free(tmp);
 
 	printf("file_type: %s\n", file_format);
 	printf("file_name: %s\n", file_name);
-	if (!strcmp(file_name, "/")) {
+	if (!strcmp(file_name, "/")) {	// 요청하는 파일을 명시하지 않았을 경우는 index.html을 요구하는것으로 판단
 		printf("redirect to index.html\n");
 		strcpy(file_name, "/index.html");
 	}
 
-	if (!strncmp(op, "GET", 3)) {
-		strcpy(file_full_name, DOCUMENT_ROOT);
+	if (!strncmp(op, "GET", 3)) {	// GET일 경우 실행
+		strcpy(file_full_name, DOCUMENT_ROOT);	// 오픈할 파일의 이름을 서버 루트에서 찾기 위한 과정
 		strcat(file_full_name, file_name);
-		code = check_file(file_full_name);
+		code = check_file(file_full_name);	// 파일의 권한과 존재 유무를 판단
 		printf("code: %d\n", code);
 		switch(code) {
-			case 200:
+			case 200:	// 200 OK
 				file = fopen(file_full_name, "rb");
 				if (file == NULL) {
 					fprintf(stderr, "file open error\n");
 					return -1;
 				}
-	
-				fseek(file, 0, SEEK_END);
+
+				fseek(file, 0, SEEK_END);	// 파일의 크기를 구함
 				file_size = ftell(file);
 				fseek(file, 0, SEEK_SET);
 				file_buf = (char *)malloc(sizeof(char) * (file_size + 1));
 				memset(file_buf, 0, file_size);
 				fread(file_buf, 1, file_size, file);
 				break;
-			case 403:
+			case 403:	// 403 Forbidden // 403과 404의 경우는 미리 스태틱 변수로 정의해놓은 각 페이지를 전달
 				file_size = strlen(FORBIDDEN) - 2 + strlen(file_name + 1);
 				file_buf = (char *)malloc(sizeof(char) * (file_size));
 				sprintf(file_buf, FORBIDDEN, file_name);
 				break;
-			case 404:
+			case 404:	// 404 Not Found
 				file_size = strlen(NOT_FOUND) - 2 + strlen(file_name);
 				file_buf = (char *)malloc(sizeof(char) * (file_size + 1));
 				sprintf(file_buf, NOT_FOUND, file_name);
 				break;
 		}
-		c_header_len = header_len(get_status(code), "close", get_mime(file_format));
-		c_header = (char *)malloc(sizeof(char) * (c_header_len + 1));
-		create_header(c_header, get_status(code), "close", get_mime(file_format));
-		response = (char *)malloc(sizeof(char) * (c_header_len + file_size + 1));
+		c_header_len = header_len(get_status(code), "close", get_mime(file_format)); 	// 헤더의 길이를 계산
+		c_header = (char *)malloc(sizeof(char) * (c_header_len + 1));									// 헤더의 길이를 바탕으로 헤더를 만들 변수 생성
+		create_header(c_header, get_status(code), "close", get_mime(file_format));		// 헤더 생성
+		response = (char *)malloc(sizeof(char) * (c_header_len + file_size + 1));			// 헤더와 데이터를 담을 변수
 		memset(response, 0, c_header_len + file_size);
-		strcpy(response, c_header);
-		memcpy(response+c_header_len, file_buf, file_size);
+		strcpy(response, c_header);	// 헤더를 리스폰스에 복사
+		memcpy(response+c_header_len, file_buf, file_size);	// 데이터를 헤더 다음에 복사
 		free(c_header);
 		free(file_buf);
 		printf("write!\n");
@@ -195,9 +196,9 @@ char *get_status(int code) {
 		case 200:
 			return "200 OK";
 		case 403:
-			return "403 FORBIDDEN";
+			return "403 Forbidden";
 		case 404:
-			return "404 NOT FOUND";
+			return "404 Not Found";
 	}
 }
 
@@ -220,6 +221,8 @@ char *get_mime(char *format) {
 		return "video/mp4";
 	else if (!strcmp(format, "wmv"))
 		return "video/x-mv-wmv";
+	else if (!strcmp(format, "pdf"))
+		return "application/pdf";
 	else
 		return "text/html";
 }
