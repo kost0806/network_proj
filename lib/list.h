@@ -26,7 +26,9 @@ void list_init(LIST *list);
 /**
  * 리스트 node 추가
  * @param LIST *list : 대상 리스트
- * @return int : 삽입된 노드의 인덱스. 에러시 -1. 함수 안에서 사용시 스택 변수 사용 금지
+ * @param void *value : node 안에 들어갈 값. 스택 변수 사용 금지.
+ * @param int value_size : value의 크기
+ * @return int : 삽입된 노드의 인덱스. 에러시 -1. 스택 변수 사용 금지
  */
 int list_insert_by_value(LIST *list, void *value, int value_size);
 
@@ -34,7 +36,7 @@ int list_insert_by_value(LIST *list, void *value, int value_size);
  * 리스트 node 추가
  * @param LIST *list : 대상 리스트
  * @param NODE *node : 추가할 node
- * @return int : 삽입된 노드의 인덱스. 에러시 -1. 함수 안에서 사용시 스택 변수 사용 금지
+ * @return int : 삽입된 노드의 인덱스. 에러시 -1. 스택 변수 사용 금지
  */
 int list_insert(LIST *list, NODE *node);
 
@@ -69,3 +71,11 @@ int list_search(LIST *list, void *value, int size);
  * @return NODE* : node의 주소
  */
 NODE* node_create();
+
+/**
+ * node의 value에 heap 공간을 할당해준다.
+ * @param NODE *node : 대상 노드
+ * @param int value_size : 할당받을 크기
+ * @return void* : 할당된 공간의 주소
+ */
+void* node_create_value_space(NODE *node, int value_size);

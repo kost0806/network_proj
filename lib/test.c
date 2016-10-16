@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "list.c"
+#include "list.h"
 
 void print_list(LIST *list) {
 	NODE *tmp_node;
@@ -19,9 +19,8 @@ int main (int argc, char **argv) {
 
 	for (i = 0; i < 10; ++i) {
 		nodes[i] = node_create();
-		nodes[i]->value = (void *) malloc(sizeof(int));
+		node_create_value_space(nodes[i], sizeof(int));
 		*((int *) nodes[i]->value) = i;
-		nodes[i]->value_size = sizeof(int);
 		list_insert(list, nodes[i]);
 	}
 

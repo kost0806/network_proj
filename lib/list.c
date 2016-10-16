@@ -69,7 +69,9 @@ int list_remove(LIST *list, NODE *node, int index) {
 			if (tmp_node == node) {
 				tmp_node->prev->next = tmp_node->next;
 				tmp_node->next->prev = tmp_node->prev;
+				free(tmp_node->value);
 				free(tmp_node);
+				list->size--;
 				return i;
 			}
 			tmp_node = tmp_node->next;
@@ -84,7 +86,9 @@ int list_remove(LIST *list, NODE *node, int index) {
 		tmp_node = list_get(list, index);
 		tmp_node->prev->next = tmp_node->next;
 		tmp_node->next->prev = tmp_node->prev;
+		free(tmp_node->value);
 		free(tmp_node);
+		list->size--;
 		return index;
 	}
 }
@@ -136,4 +140,10 @@ NODE* node_create() {
 	NODE *node = (NODE *) malloc(sizeof(NODE));
 	memset(node, 0, sizeof(NODE));
 	return node;
+}
+
+void* node_create_value_space(NODE *node, int value_size) {
+	node->value = (void *) malloc(value_size);
+	node->value_size = value_size;
+	return node->value;
 }
