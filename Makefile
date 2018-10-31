@@ -7,5 +7,5 @@ main.o :
 server :
 	gcc -o server server.o main.o
 
-clear :
+clean :
 	rm *.o server
